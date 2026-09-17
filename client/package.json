@@ -4,7 +4,7 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "dev": "vite --host",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node ./scripts/copy-server-assets.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
