@@ -78,7 +78,7 @@ function CardEvent({ event, participants }: CardEventProps) {
       <article className="card-event-container">
         <div className="card-img-container">
           <img
-            src={`${import.meta.env.VITE_API_URL ?? ""}/${event.url_image}`}
+            src={`${import.meta.env.VITE_API_URL ?? ""}${event.url_image}`}
             alt=""
             className="card-img"
           />

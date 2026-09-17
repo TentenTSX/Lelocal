@@ -8,7 +8,8 @@ import { useAuthContext } from "../../context/AuthContext";
 import { apiFetch } from "../../hooks/apiFetch";
 import useClearCart from "../../hooks/useClearCart";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
 
 function Payment() {
   const user = useAuthContext();
@@ -17,6 +18,10 @@ function Payment() {
   const cartItems = location.state?.cartItems ?? [];
   const [clientSecret, setClientSecret] = useState("");
   const clearCart = useClearCart();
+
+  if (!stripePromise) {
+    return <p>Le paiement n'est pas encore configuré.</p>;
+  }
 
   useEffect(() => {
     if (!totalPrice || totalPrice <= 0) return;
