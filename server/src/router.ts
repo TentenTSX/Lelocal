@@ -1,11 +1,11 @@
 import express from "express";
+import databaseClient from "../database/client";
 import cartActions from "./modules/cart/cartAction";
 
 const router = express.Router();
 
 router.get("/api/health", async (_req, res) => {
   try {
-    const databaseClient = (await import("../database/client")).default;
     await databaseClient.query("SELECT 1");
     res.json({ status: "ok", database: "connected" });
   } catch (error) {
