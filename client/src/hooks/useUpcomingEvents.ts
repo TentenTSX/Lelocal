@@ -8,7 +8,7 @@ function useUpcomingEvents(refreshKey = 0) {
   useEffect(() => {
     void refreshKey;
 
-    apiFetch("/api/events/")
+    apiFetch("/api/events")
       .then((res) => res.json())
       .then((data) => setUpcomingEvents(data));
   }, [refreshKey]);
