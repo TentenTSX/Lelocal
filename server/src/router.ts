@@ -1,5 +1,6 @@
 import express from "express";
 import databaseClient from "../database/client";
+import { upload } from "../public/upload/upload";
 import cartActions from "./modules/cart/cartAction";
 
 const router = express.Router();
@@ -216,7 +217,6 @@ router.delete(
 /* ************************************************************************* */
 // Create Event (protégé admin)
 /* ************************************************************************* */
-import { upload } from "../public/upload/upload";
 import createEventFormAction from "./modules/createEventForm/createEventFormAction";
 
 router.get(
