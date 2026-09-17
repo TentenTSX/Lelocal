@@ -3,6 +3,17 @@ import cartActions from "./modules/cart/cartAction";
 
 const router = express.Router();
 
+router.get("/api/health", async (_req, res) => {
+  try {
+    const databaseClient = (await import("../database/client")).default;
+    await databaseClient.query("SELECT 1");
+    res.json({ status: "ok", database: "connected" });
+  } catch (error) {
+    console.error("Database health check failed", error);
+    res.status(503).json({ status: "error", database: "unavailable" });
+  }
+});
+
 import authMiddleware from "./Middlewares/authMiddleware";
 import authActions from "./modules/Authentification/AuthentificationAction";
 

@@ -3,7 +3,11 @@ import path from "node:path";
 import type { Request } from "express";
 import multer, { type StorageEngine, type FileFilterCallback } from "multer";
 
-const uploadDir = path.join(process.cwd(), "public", "uploads");
+// Vercel Functions only allow temporary writes under /tmp. These files are
+// intentionally temporary; persistent uploads must later use Blob/Cloudinary.
+const uploadDir = process.env.VERCEL
+  ? path.join("/tmp", "uploads")
+  : path.join(process.cwd(), "public", "uploads");
 
 console.log("UPLOAD DIR =", uploadDir);
 

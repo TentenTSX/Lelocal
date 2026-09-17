@@ -16,8 +16,8 @@ function useAvailability(spaceId: number, date: string, timeSlotId?: string) {
     }
 
     const url = timeSlotId
-      ? `${import.meta.env.VITE_API_URL}/api/spaces/${spaceId}/availability?date=${date}&timeSlotId=${timeSlotId}`
-      : `${import.meta.env.VITE_API_URL}/api/spaces/${spaceId}/availability-by-date?date=${date}`;
+      ? `${import.meta.env.VITE_API_URL ?? ""}/api/spaces/${spaceId}/availability?date=${date}&timeSlotId=${timeSlotId}`
+      : `${import.meta.env.VITE_API_URL ?? ""}/api/spaces/${spaceId}/availability-by-date?date=${date}`;
 
     fetch(url)
       .then((res) => res.json())

@@ -16,12 +16,8 @@ const signToken = (payload: TokenPayload): string => {
 };
 
 const verifyToken = (token: string): TokenPayload => {
-  console.log("JWT_SECRET exists:", !!JWT_SECRET);
-  console.log("TOKEN:", token.substring(0, 30));
-
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
-    console.log("JWT OK:", decoded);
     return decoded;
   } catch (error) {
     console.error("JWT VERIFY ERROR:", error);

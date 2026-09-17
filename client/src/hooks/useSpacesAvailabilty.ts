@@ -30,7 +30,7 @@ function useSpacesAvailability(
     Promise.all(
       spaceIds.map((id) =>
         fetch(
-          `${import.meta.env.VITE_API_URL}/api/spaces/${id}/availability?${params.toString()}`,
+          `${import.meta.env.VITE_API_URL ?? ""}/api/spaces/${id}/availability?${params.toString()}`,
           { signal: controller.signal },
         )
           .then((res) => {
