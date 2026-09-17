@@ -1,391 +1,315 @@
-# Js-Team-vert-WildWlaker-P3-G1
+# LeLocal
 
-Ce projet est un monorepo JS, suivant l'architecture React-Express-MySQL telle qu'enseignée à la Wild Code School (v7.2.4) :
+Plateforme web full-stack destinée à un tiers-lieu associatif. LeLocal permet de découvrir et réserver des espaces, consulter les événements et ateliers, gérer un panier, payer une réservation et suivre son activité depuis un tableau de bord.
+
+**Application en ligne :** [lelocal-client-tententsx.vercel.app](https://lelocal-client-tententsx.vercel.app/)
+
+## Sommaire
+
+- [Présentation](#présentation)
+- [Fonctionnalités](#fonctionnalités)
+- [Stack technique](#stack-technique)
+- [Architecture](#architecture)
+- [Installation locale](#installation-locale)
+- [Variables d'environnement](#variables-denvironnement)
+- [Base de données](#base-de-données)
+- [Commandes disponibles](#commandes-disponibles)
+- [API](#api)
+- [Déploiement](#déploiement)
+- [Structure du projet](#structure-du-projet)
+- [Sécurité](#sécurité)
+- [Limites connues](#limites-connues)
+
+## Présentation
+
+LeLocal centralise les services d'un tiers-lieu :
+
+- découverte des espaces de coworking, studios, salles et ateliers ;
+- consultation des disponibilités et des événements ;
+- création de compte et authentification par rôle ;
+- réservation et gestion du panier ;
+- paiement en ligne avec Stripe ;
+- suivi des réservations, factures et réclamations ;
+- proposition d'événements par les membres ;
+- administration des demandes, réservations et statistiques.
+
+Le projet a été réalisé en équipe dans le cadre de la formation Développeur web et web mobile de la Wild Code School.
+
+## Fonctionnalités
+
+### Visiteur
+
+- consulter les espaces, événements et ateliers ;
+- filtrer les espaces par catégorie ;
+- consulter les créneaux et disponibilités ;
+- créer un compte ou se connecter.
+
+### Client authentifié
+
+- réserver un espace ou s'inscrire à un événement ;
+- ajouter, modifier et supprimer des éléments du panier ;
+- régler une réservation ;
+- consulter ses réservations passées et à venir ;
+- accéder à son historique de facturation ;
+- envoyer une réclamation ;
+- proposer un événement avec une image.
+
+### Administrateur
+
+- consulter les statistiques du tiers-lieu ;
+- suivre les réservations et le taux d'occupation ;
+- consulter et traiter les réclamations ;
+- accepter ou refuser les demandes d'événements ;
+- créer des événements.
+
+## Stack technique
+
+| Partie | Technologies |
+|---|---|
+| Frontend | React 19, TypeScript, Vite, React Router, CSS |
+| Backend | Node.js, Express, TypeScript |
+| Base de données | MySQL en local, TiDB Cloud en production |
+| Accès aux données | `mysql2/promise`, requêtes SQL paramétrées |
+| Authentification | JWT, Argon2, rôles `client` et `admin` |
+| Paiement | Stripe |
+| Validation et qualité | Joi, Biome, TypeScript, Jest, Supertest |
+| Déploiement | Vercel pour React et Express, TiDB Cloud pour les données |
+
+## Architecture
+
+LeLocal est organisé en monorepo avec deux workspaces npm : `client` et `server`.
 
 ```mermaid
-sequenceDiagram
-    box Web Client
-    participant React as React
-    participant Fetcher as Fetcher
-    end
-    box Web Server
-    participant Express as Express
-    participant Module as Module
-    end
-    box DB Server
-    participant DB as MySQL Server
-    end
-
-    React-)Fetcher: event
-    activate Fetcher
-    Fetcher-)Express: requête (HTTP)
-    activate Express
-    Express-)Module: appel
-    activate Module
-    Module-)DB: requête SQL
-    activate DB
-    DB--)Module: données
-    deactivate DB
-    Module--)Express: json
-    deactivate Module
-    Express--)Fetcher: réponse HTTP
-    deactivate Express
-    Fetcher--)React: render
-    deactivate Fetcher
+flowchart TD
+    U[Utilisateur] --> R[Frontend React]
+    R -->|Requêtes /api| E[API Express]
+    E -->|SQL sécurisé| D[(MySQL ou TiDB)]
+    E -->|Paiement| S[Stripe]
 ```
 
-Il est pré-configuré avec un ensemble d'outils pour aider les étudiants à produire du code de qualité industrielle, tout en restant un outil pédagogique :
+En production, le frontend et l'API utilisent le même domaine Vercel. Les appels du navigateur sont donc effectués avec des chemins relatifs comme `/api/events`.
 
-- **Concurrently** : Permet d'exécuter plusieurs commandes simultanément dans le même terminal.
-- **Vite** : Alternative à _Create-React-App_, offrant une expérience plus fluide avec moins d'outils.
-- **Biome** : Alternative à _ESlint_ et _Prettier_, assurant la qualité du code selon des règles choisies.
-- **Supertest** : Bibliothèque pour tester les serveurs HTTP en node.js.
+## Installation locale
 
-## Table des Matières
+### Prérequis
 
-- [Js-Team-vert-WildWlaker-P3-G1](#name)
-  - [Table des Matières](#table-des-matières)
-  - [Installation \& Utilisation](#installation--utilisation)
-  - [Les choses à retenir](#les-choses-à-retenir)
-    - [Commandes de Base](#commandes-de-base)
-    - [Structure des Dossiers](#structure-des-dossiers)
-    - [Mettre en place la base de données](#mettre-en-place-la-base-de-données)
-    - [Développer la partie back-end](#développer-la-partie-back-end)
-    - [REST](#rest)
-    - [Autres Bonnes Pratiques](#autres-bonnes-pratiques)
-  - [FAQ](#faq)
-    - [Installation avec Docker](#installation-avec-docker)
-      - [Mode développement](#mode-développement)
-      - [Installation de nouvelles dépendances](#installation-de-nouvelles-dépendances)
-      - [Accéder à la base de données](#accéder-à-la-base-de-données)
-    - [Déploiement avec Traefik](#déploiement-avec-traefik)
-    - [Variables d'environnement spécifiques](#variables-denvironnement-spécifiques)
-    - [Logs](#logs)
-    - [Contribution](#contribution)
+- Node.js 20 ou version supérieure ;
+- npm ;
+- MySQL en fonctionnement ;
+- Git.
 
-## Installation & Utilisation
+### Mise en place
 
-1. Installez le plugin **Biome** dans VSCode et configurez-le.
-2. Clonez ce dépôt, puis accédez au répertoire cloné.
-3. Exécutez la commande `npm install`.
-4. Créez des fichiers d'environnement (`.env`) dans les répertoires `server` et `client` : vous pouvez copier les fichiers `.env.sample` comme modèles (**ne les supprimez pas**).
-
-## Les choses à retenir
-
-### Commandes de Base
-
-| Commande               | Description                                                                 |
-|------------------------|-----------------------------------------------------------------------------|
-| `npm install`          | Installe les dépendances pour le client et le serveur                       |
-| `npm run db:migrate`   | Met à jour la base de données à partir d'un schéma défini                   |
-| `npm run dev`          | Démarre les deux serveurs (client et serveur) dans un seul terminal         |
-| `npm run check`        | Exécute les outils de validation (linting et formatage)                     |
-| `npm run test`         | Exécute les tests unitaires et d'intégration                                |
-
-### Structure des Dossiers
-
-```plaintext
-my-project/
-│
-├── server/
-│   ├── app/
-│   │   ├── modules/
-│   │   │   ├── item/
-│   │   │   │   ├── itemActions.ts
-│   │   │   │   └── itemRepository.ts
-│   │   │   └── ...
-│   │   ├── app.ts
-│   │   ├── main.ts
-│   │   └── router.ts
-│   ├── database/
-│   │   ├── client.ts
-│   │   └── schema.sql
-│   ├── tests/
-│   ├── .env
-│   └── .env.sample
-│
-└── client/
-    ├── src/
-    │   ├── components/
-    │   ├── pages/
-    │   └── App.tsx
-    ├── .env
-    └── .env.sample
-```
-
-### Mettre en place la base de données
-
-**Créer et remplir le fichier `.env`** dans le dossier `server` :
-
-```plaintext
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=not_root
-DB_PASSWORD=password
-DB_NAME=my_database
-```
-
-**Les variables sont utilisés** dans `server/database/client.ts` :
-
-```typescript
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
-
-import mysql from "mysql2/promise";
-
-const client = mysql.createPool({
-  host: DB_HOST,
-  port: DB_PORT as number | undefined,
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
-});
-
-export default client;
-```
-
-**Créer une table** dans `server/database/schema.sql` :
-
-```sql
-CREATE TABLE item (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  user_id INT NOT NULL,
-  FOREIGN KEY(user_id) REFERENCES user(id)
-);
-```
-
-**Insérer des données** dans `server/database/schema.sql` :
-
-```sql
-INSERT INTO item (title, user_id) VALUES
-  ('Sample Item 1', 1),
-  ('Sample Item 2', 2);
-```
-
-**Synchroniser la BDD avec le schema** :
-
-```sh
-npm run db:migrate
-```
-
-### Développer la partie back-end
-
-**Créer une route** dans `server/app/router.ts` :
-
-```typescript
-// ...
-
-/* ************************************************************************* */
-// Define Your API Routes Here
-/* ************************************************************************* */
-
-// Define item-related routes
-import itemActions from "./modules/item/itemActions";
-
-router.get("/api/items", itemActions.browse);
-
-/* ************************************************************************* */
-
-// ...
-```
-
-**Définir une action** dans `server/app/modules/item/itemActions.ts` :
-
-```typescript
-import type { RequestHandler } from "express";
-
-import itemRepository from "./itemRepository";
-
-const browse: RequestHandler = async (req, res, next) => {
-  try {
-    const items = await itemRepository.readAll();
-
-    res.json(items);
-  } catch (err) {
-    next(err);
-  }
-};
-
-export default { browse };
-```
-
-**Accéder aux données** dans `server/app/modules/item/itemRepository.ts` :
-
-```typescript
-import databaseClient from "../../../database/client";
-
-import type { Result, Rows } from "../../../database/client";
-
-interface Item {
-  id: number;
-  title: string;
-  user_id: number;
-}
-
-class ItemRepository {
-  async readAll() {
-    const [rows] = await databaseClient.query<Rows>("select * from item");
-
-    return rows as Item[];
-  }
-}
-
-export default new ItemRepository();
-```
-
-**Ajouter un middleware** 
-
-```typescript
-// ...
-
-/* ************************************************************************* */
-// Define Your API Routes Here
-/* ************************************************************************* */
-
-// Define item-related routes
-import itemActions from "./modules/item/itemActions";
-
-const foo: RequestHandler = (req, res, next) => {
-  req.message = "hello middleware";
-
-  next();
-}
-
-router.get("/api/items", foo, itemActions.browse);
-
-/* ************************************************************************* */
-
-// ...
-```
-
-`req.message` sera disponible dans `itemActions.browse`.
-
-⚠️ La propriété `message` doit être ajoutée dans `src/types/express/index.d.ts` :
-
-```diff
-// to make the file a module and avoid the TypeScript error
-export type {};
-
-declare global {
-  namespace Express {
-    export interface Request {
-      /* ************************************************************************* */
-      // Add your custom properties here, for example:
-      //
-      // user?: { ... };
-      /* ************************************************************************* */
-+      message: string;
-    }
-  }
-}
-```
-
-### REST
-
-| Opération | Méthode | Chemin d'URL | Corps de la requête | SQL    | Réponse (Succès)               | Réponse (Erreur)                                                       |
-|-----------|---------|--------------|---------------------|--------|--------------------------------|------------------------------------------------------------------------|
-| Browse    | GET     | /items       |                     | SELECT | 200 (OK), liste des items.     |                                                                        |
-| Read      | GET     | /items/:id   |                     | SELECT | 200 (OK), un item.             | 404 (Not Found), si id invalide.                                       |
-| Add       | POST    | /items       | Données de l'item   | INSERT | 201 (Created), id d'insertion. | 400 (Bad Request), si corps invalide.                                  |
-| Edit      | PUT     | /items/:id   | Données de l'item   | UPDATE | 204 (No Content).              | 400 (Bad Request), si corps invalide. 404 (Not Found), si id invalide. |
-| Destroy   | DELETE  | /items/:id   |                     | DELETE | 204 (No Content).              | 404 (Not Found), si id invalide.                                       |
-
-### Autres Bonnes Pratiques
-
-- **Sécurité** :
-  - Validez et échappez toujours les entrées des utilisateurs.
-  - Utilisez HTTPS pour toutes les communications réseau.
-  - Stockez les mots de passe de manière sécurisée en utilisant des hash forts (ex : argon2).
-  - Revoyez et mettez à jour régulièrement les dépendances.
-
-- **Code** :
-  - Suivez les principes SOLID pour une architecture de code propre et maintenable.
-  - Utilisez TypeScript pour bénéficier de la vérification statique des types.
-  - Adoptez un style de codage cohérent avec Biome.
-  - Écrivez des tests pour toutes les fonctionnalités critiques.
-
-## FAQ
-
-### Installation avec Docker
-> ⚠️ Prérequis : Vous devez avoir installé Docker et Docker Compose sur votre machine.  
-> Suivez les instructions ici : [Docker Installation](https://docs.docker.com/get-docker/).
-
-Lorsque Docker est installé et démarré, exécutez la commande suivante pour construire l'image Docker et démarrer les conteneurs :
 ```bash
-docker compose up -d --build
-```
-La partie _client_ de l'application sera accessible à l'adresse http://localhost:3000 et la partie _serveur_ à l'adresse http://localhost:3310.  
-Pour arrêter et supprimer les conteneurs, exécutez :
-```bash
-docker compose down
-```
-
-#### Mode développement
-Les dépendances (du dossier `node_modules`) sont installées dans le conteneur Docker et ne seront pas visibles directement. Si vous utilisez un IDE comme VSCode et que vous souhaitez modifier des fichiers de votre application, vous devez installer les dépendances localement pour prévenir toute erreur de fichiers manquants.  
-```bash
+git clone git@github.com:TentenTSX/Lelocal.git
+cd Lelocal
 npm install
 ```
 
-#### Installation de nouvelles dépendances
-Pour installer de nouvelles dépendances, procédez en local comme d'habitude avec `npm install <package-name>`, puis, synchronisez les dépendances dans le conteneur Docker avec la commande suivante :
+Crée ensuite les fichiers d'environnement à partir des exemples :
+
 ```bash
-docker compose exec web sh -c "npm install"
+cp server/.env.sample server/.env
+cp client/.env.sample client/.env
 ```
 
-#### Accéder à la base de données
-Pour vous connecter à la base de données avec votre terminal, exécutez la commande suivante :
+Renseigne les valeurs locales dans les deux fichiers, puis initialise la base uniquement si nécessaire :
+
 ```bash
-docker compose exec database sh -c "mysql -uuser -ppassword js_template_fullstack"
+npm run db:migrate
+npm run dev
 ```
 
-### Déploiement avec Traefik
+L'application locale utilise par défaut :
 
-> ⚠️ Prérequis : Vous devez avoir installé et configuré Traefik sur votre VPS au préalable. Suivez les instructions ici : [VPS Traefik Starter Kit](https://github.com/WildCodeSchool/vps-traefik-starter-kit/).
+- frontend : `http://localhost:3000` ;
+- backend : `http://localhost:3310`.
 
-Pour le déploiement, ajoutez les secrets suivants dans la section `secrets` → `actions` du dépôt GitHub :
+> **Attention :** la migration actuelle supprime et recrée la base indiquée par `DB_NAME`. Elle est réservée à une base locale de développement. Ne l'exécute jamais avec les identifiants TiDB de production.
 
-- `SSH_HOST` : Adresse IP de votre VPS
-- `SSH_USER` : Identifiant SSH pour votre VPS
-- `SSH_PASSWORD` : Mot de passe de connexion SSH pour votre VPS
+## Variables d'environnement
 
-Et une variable publique dans `/settings/variables/actions` :
+### Serveur — `server/.env`
 
-- `PROJECT_NAME` : Le nom du projet utilisé pour créer le sous-domaine.
+```dotenv
+APP_PORT=3310
 
-> ⚠️ Avertissement : Les underscores ne sont pas autorisés car ils peuvent causer des problèmes avec le certificat Let's Encrypt.
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=your_local_user
+DB_PASSWORD=your_local_password
+DB_NAME=lelocal
+DB_SSL=false
 
-L'URL de votre projet sera `https://${PROJECT-NAME}.${subdomain}.wilders.dev/`.
+JWT_SECRET=generate_a_long_random_secret
+JWT_EXPIRES_IN=30d
 
-### Variables d'environnement spécifiques
+CLIENT_URL=http://localhost:3000
+STRIPE_SECRET_KEY=sk_test_xxx
+```
 
-Les étudiants doivent utiliser le modèle fourni dans le fichier `*.env.sample*` en suivant la convention `<PROJECT_NAME><SPECIFIC_NAME>=<THE_VARIABLE>`.
+### Client — `client/.env`
 
-> ⚠️ **Avertissement:** Le `PROJECT_NAME` doit correspondre à celui utilisé dans la variable publique Git.
+```dotenv
+VITE_API_URL=http://localhost:3310
+VITE_STRIPE_PUBLIC_KEY=pk_test_xxx
+```
 
-Pour l'ajouter lors du déploiement, suivez ces deux étapes :
+En production, `VITE_API_URL` doit être absente ou vide : Vercel expose déjà l'API sous le même domaine avec le préfixe `/api`.
 
-1. Ajoutez la variable correspondante dans le fichier `docker-compose.prod.yml` (comme montré dans l'exemple : `PROJECT_NAME_SPECIFIC_NAME: ${PROJECT_NAME_SPECIFIC_NAME}`).
-2. Connectez-vous à votre serveur via SSH. Ouvrez le fichier `.env` global dans Traefik (`nano ./traefik/data/.env`). Ajoutez la variable avec la valeur correcte et sauvegardez le fichier.
+Ne versionne jamais les véritables fichiers `.env`. Les fichiers `.env.sample` documentent uniquement les noms attendus.
 
-Après cela, vous pouvez lancer le déploiement automatique. Docker ne sera pas rafraîchi pendant ce processus.
+## Base de données
 
-### Logs
+Le schéma relationnel se trouve dans [`server/database/schema.sql`](server/database/schema.sql). Les principales tables sont :
 
-Pour accéder aux logs de votre projet en ligne (pour suivre le déploiement ou surveiller les erreurs), connectez-vous à votre VPS (`ssh user@host`). Ensuite, allez dans votre projet spécifique et exécutez `docker compose logs -t -f`.
+- `users` : comptes clients et administrateurs ;
+- `space` : espaces, salles, studios et ateliers ;
+- `time_slot` : créneaux disponibles ;
+- `activity` : événements et activités réservables ;
+- `cart` : panier temporaire ;
+- `booking` : réservations validées ;
+- `claim` : réclamations clients.
 
-### Contribution
+Deux environnements de données sont utilisés :
 
-Nous accueillons avec plaisir les contributions ! Veuillez suivre ces étapes pour contribuer :
+| Environnement | Base | Configuration |
+|---|---|---|
+| Développement | MySQL sur la machine locale | `server/.env` |
+| Production | TiDB Cloud | Variables d'environnement Vercel |
 
-1. **Fork** le dépôt.
-2. **Clone** votre fork sur votre machine locale.
-3. Créez une nouvelle branche pour votre fonctionnalité ou bug fix (`git switch -c feature/your-feature-name`).
-4. **Commit** vos modifications (`git commit -m 'Add some feature'`).
-5. **Push** vers votre branche (`git push origin feature/your-feature-name`).
-6. Créez une **Pull Request** sur le dépôt principal.
+Ces deux bases sont indépendantes. Une modification locale n'est pas automatiquement synchronisée avec TiDB.
 
-**Guide de Contribution** :
+## Commandes disponibles
 
-- Assurez-vous que votre code respecte les standards de codage en exécutant `npm run check` avant de pousser vos modifications.
-- Ajoutez des tests pour toute nouvelle fonctionnalité ou correction de bug.
-- Documentez clairement vos modifications dans la description de la pull request.
+| Commande | Description |
+|---|---|
+| `npm install` | Installe les dépendances des deux workspaces |
+| `npm run dev` | Démarre le frontend et le backend simultanément |
+| `npm run dev:client` | Démarre uniquement Vite |
+| `npm run dev:server` | Démarre uniquement Express |
+| `npm run build` | Compile les workspaces disponibles |
+| `npm run check` | Exécute Biome et les vérifications TypeScript |
+| `npm run check:fix` | Corrige automatiquement les problèmes pris en charge par Biome |
+| `npm run test` | Exécute les tests disponibles |
+| `npm run db:migrate` | Recrée la base locale depuis `schema.sql` |
+| `npm run db:seed` | Ajoute les données de démonstration prévues par le projet |
+
+## API
+
+Toutes les routes sont préfixées par `/api`.
+
+| Domaine | Exemples de routes |
+|---|---|
+| Santé | `GET /api/health` |
+| Authentification | `POST /api/auth/register`, `POST /api/auth/login/client`, `GET /api/auth/me` |
+| Espaces | `GET /api/spaces`, `GET /api/spaces/:id/availability` |
+| Événements | `GET /api/events`, `GET /api/events/:date`, `POST /api/events/:id` |
+| Panier | `GET /api/cart/:userId`, `POST /api/cart`, `PATCH /api/cart/:id` |
+| Réservations | `POST /api/bookings`, `POST /api/booking` |
+| Paiement | `POST /api/payment/create-intent` |
+| Dashboard client | `/api/dashboard/client/*` |
+| Dashboard admin | `/api/dashboard/admin/*` |
+
+Les routes protégées attendent un JWT dans l'en-tête :
+
+```http
+Authorization: Bearer <token>
+```
+
+## Déploiement
+
+### Vercel
+
+Le fichier [`vercel.json`](vercel.json) configure :
+
+- la compilation du frontend Vite ;
+- la publication de `client/dist` ;
+- l'exécution d'Express comme fonction Vercel via `api/index.ts` ;
+- la redirection des requêtes `/api/*` vers le backend ;
+- le fallback vers `index.html` pour React Router.
+
+Variables principales à configurer dans Vercel :
+
+```dotenv
+DB_HOST=your_tidb_host
+DB_PORT=4000
+DB_USER=your_tidb_user
+DB_PASSWORD=your_tidb_password
+DB_NAME=lelocal
+DB_SSL=true
+JWT_SECRET=your_production_secret
+JWT_EXPIRES_IN=30d
+CLIENT_URL=https://your-domain.vercel.app
+STRIPE_SECRET_KEY=sk_xxx
+VITE_STRIPE_PUBLIC_KEY=pk_xxx
+```
+
+Les variables de production doivent contenir les identifiants TiDB, jamais `localhost` ni les identifiants MySQL du Mac.
+
+### Vérification
+
+Après un déploiement, vérifie la connexion à la base :
+
+```text
+GET https://your-domain.vercel.app/api/health
+```
+
+Réponse attendue :
+
+```json
+{
+  "status": "ok",
+  "database": "connected"
+}
+```
+
+## Structure du projet
+
+```text
+Lelocal/
+├── api/
+│   └── index.ts                 # Entrée de la fonction Vercel
+├── client/
+│   ├── scripts/                 # Scripts de build du frontend
+│   ├── src/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── hooks/
+│   │   ├── pages/
+│   │   └── types/
+│   └── package.json
+├── server/
+│   ├── bin/                     # Migration et seed
+│   ├── database/                # Client MySQL et schéma SQL
+│   ├── public/                  # Ressources statiques et uploads locaux
+│   └── src/
+│       ├── Middlewares/
+│       ├── modules/
+│       ├── app.ts
+│       ├── main.ts
+│       └── router.ts
+├── package.json
+└── vercel.json
+```
+
+## Sécurité
+
+- mots de passe hachés avec Argon2 ;
+- authentification JWT ;
+- contrôle des rôles client et administrateur ;
+- requêtes SQL paramétrées ;
+- secrets stockés dans des variables d'environnement ;
+- validation des entrées avec Joi et des middlewares Express ;
+- connexion TLS obligatoire vers TiDB en production.
+
+## Limites connues
+
+- Les fichiers envoyés dans une fonction Vercel sont enregistrés temporairement dans `/tmp`. Pour conserver durablement les nouvelles images, il faut utiliser un stockage comme Vercel Blob, Cloudinary ou Amazon S3.
+- MySQL local et TiDB Cloud ne sont pas synchronisés automatiquement.
+- Stripe doit être configuré avec une clé publique côté client et une clé secrète côté serveur pour activer le paiement.
+- Les images du projet sont volumineuses et gagneraient à être optimisées et converties en formats modernes.
+
+## Licence
+
+Projet pédagogique réalisé dans le cadre de la Wild Code School.
